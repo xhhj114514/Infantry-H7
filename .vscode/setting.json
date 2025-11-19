@@ -1,0 +1,13 @@
+{
+    "cland.path": "D:\\msys64\\ucrt64\\bin\\clangd.exe",
+    "clangd.fileTypes": ["cpp", "cc", "c++", "cxx", "c", "h", "hh", "hpp"],
+    "clangd.showDiagnosticsOnSave": true,
+    "clangd.useGlobalConfig": false,
+    "clangd.logLevel": "info",
+    "clangd.arguments": [
+        "--background-index",
+        "--compile-commands-dir=c:/Users/Administrator/Desktop/District46_Arm/cmake_code/enginex/build",
+        "--header-filter=.*"
+    ],
+    "clangd.debug": true
+}
