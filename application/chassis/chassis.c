@@ -34,7 +34,7 @@ static float vt_lf, vt_rf, vt_lb, vt_rb; // 底盘速度解算后的临时输出
 void ChassisInit()
 {
     Motor_Init_Config_s chassis_motor_config = {
-        .can_init_config.can_handle = &hcan1,
+        .can_init_config.can_handle = &hfdcan1,
         .controller_param_init_config = {
             .speed_PID = {
                 .Kp = 10, // 4.5
@@ -80,7 +80,7 @@ void ChassisInit()
 
     SuperCap_Init_Config_s capconfig = {
             .can_config = {
-                .can_handle = &hcan1,
+                .can_handle = &hfdcan1,
                 .rx_id = 0x311,
                 .tx_id = 0x310,
             },

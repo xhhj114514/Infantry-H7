@@ -60,7 +60,6 @@ typedef struct
     float Kp;
     float Ki;
     float Kd;
-    float Kf;
     float MaxOut;
     float DeadBand;
 
@@ -83,15 +82,15 @@ typedef struct
     float Pout;
     float Iout;
     float Dout;
-    float Fout;
     float ITerm;
 
     float Output;
     float Last_Output;
     float Last_Dout;
 
+    float FF_Gain;       // 前馈增益
     float Ref;
-    float Pre_Ref;
+
     uint32_t DWT_CNT;
     float dt;
 
@@ -105,7 +104,6 @@ typedef struct // config parameter
     float Kp;
     float Ki;
     float Kd;
-    float Kf;
     float MaxOut;   // 输出限幅
     float DeadBand; // 死区
 
@@ -116,6 +114,7 @@ typedef struct // config parameter
     float CoefB;         // ITerm = Err*((A-abs(err)+B)/A)  when B<|err|<A+B
     float Output_LPF_RC; // RC = 1/omegac
     float Derivative_LPF_RC;
+    float FF_Gain;       // 前馈增益
 } PID_Init_Config_s;
 
 /**

@@ -1,6 +1,7 @@
 #ifndef RM_REFEREE_H
 #define RM_REFEREE_H
 
+#include "usart.h"
 #include "referee_protocol.h"
 #include "robot_def.h"
 #include "bsp_usart.h"
@@ -38,7 +39,7 @@ typedef struct
 	ext_projectile_allowance_t ProjectileAllowance;
 
 	// 自定义交互数据的接收
-	Communicate_ReceiveData_t ArmData;
+	Communicate_ReceiveData_t ReceiveData;
 
 	uint8_t init_flag;
 
@@ -51,7 +52,6 @@ typedef struct
 	uint32_t gimbal_flag : 1;
 	uint32_t shoot_flag : 1;
 	uint32_t loader_flag : 1;
-	uint32_t friction_flag : 1;
 	uint32_t Power_flag : 1;
 	uint32_t aim_flag :1;
 } Referee_Interactive_Flag_t;
@@ -62,11 +62,20 @@ typedef struct
 	Referee_Interactive_Flag_t Referee_Interactive_Flag;
 	// 为UI绘制以及交互数据所用
 	chassis_mode_e chassis_mode;			 // 底盘模式
-	
+	gimbal_mode_e gimbal_mode;				 // 云台模式
+	shoot_mode_e shoot_mode;				 // 发射模式设置
+	loader_mode_e loader_mode;			 	// 拨盘模式
+	AutoAim_mode_e autoaim_mode;
+	Chassis_Power_Data_s Chassis_Power_Data; // 功率控制
+
 	// 上一次的模式，用于flag判断
 	chassis_mode_e chassis_last_mode;
-	// gimbal_mode_e gimbal_last_mode;
+	gimbal_mode_e gimbal_last_mode;
+	shoot_mode_e shoot_last_mode;
+	loader_mode_e loader_last_mode;
+	AutoAim_mode_e autoaim_last_mode;
 
+	Chassis_Power_Data_s Chassis_last_Power_Data;
 
 } Referee_Interactive_info_t;
 
@@ -88,14 +97,5 @@ referee_info_t *RefereeInit(UART_HandleTypeDef *referee_usart_handle);
  * @param tx_len 发送长度
  */
 void RefereeSend(uint8_t *send, uint16_t tx_len);
-
-
-//表驱动法
-//定义命令映射表结构
-typedef struct {
-    uint16_t cmd_id;
-    void* data_struct;           // 指向目标结构体的指针
-    uint16_t data_len;           // 数据长度
-} JudgeCommandEntry_t;
 
 #endif // !REFEREE_H

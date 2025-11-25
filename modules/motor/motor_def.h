@@ -1,6 +1,7 @@
 #ifndef MOTOR_DEF_H
 #define MOTOR_DEF_H
 
+#include "bsp_can.h"
 #include "controller.h"
 #include "stdint.h"
 #include "lqr.h"

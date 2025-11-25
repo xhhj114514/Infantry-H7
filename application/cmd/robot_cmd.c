@@ -14,7 +14,7 @@
 
 // bsp
 #include "bsp_dwt.h"
-#include "bsp_log.h"
+// #include "bsp_log.h"
 
 // 私有宏,自动将编码器转换成角度值
 #define YAW_ALIGN_ANGLE (YAW_CHASSIS_ALIGN_ECD * ECD_ANGLE_COEF_DJI) // 对齐时的角度,0-360
@@ -56,9 +56,9 @@ static float chassis_speed_buff;
 
 void RobotCMDInit()
 {
-    rc_data = RemoteControlInit(&huart3);   // 修改为对应串口,注意如果是自研板dbus协议串口需选用添加了反相器的那个
-    minipc_recv_data = minipcInit(&huart1); // 视觉通信串口
-    referee_data= UITaskInit(&huart6,&ui_data);
+    rc_data = RemoteControlInit(&huart5);   // 修改为对应串口
+    // minipc_recv_data = minipcInit(&huart1); // 视觉通信串口
+    // referee_data= UITaskInit(&huart6,&ui_data);
 
     gimbal_cmd_pub = PubRegister("gimbal_cmd", sizeof(Gimbal_Ctrl_Cmd_s));
     gimbal_feed_sub = SubRegister("gimbal_feed", sizeof(Gimbal_Upload_Data_s));
@@ -125,52 +125,28 @@ static void GimbalPitchLimit()
  */
 static void VisionJudge()
 {
-    //cnt1用于检测小电脑的离线，取值为[-1,1]
-    //在-0.1到1且小电脑未离线时，读取深度
-    cnt1=sin(DWT_GetTimeline_s());
-    if(cnt1>-0.1&&cnt1<1&&DataLebel.cmd_error_flag==0)
-    {
-        gimbal_cmd_send.last_deep= minipc_recv_data->Vision.deep;
-    }
+    DataLebel.cmd_error_flag = minipc_recv_data->FailFlag;//minipc_recv_data->FailFlag;
     //有深度代表有视觉信息
-    if(minipc_recv_data->Vision.deep!=0&&DataLebel.cmd_error_flag==0)//代表收到信息
+    if(DataLebel.cmd_error_flag==0)
     {
-        DataLebel.aim_flag=1;
-        //检测到装甲板，开启蜂鸣器
-        AlarmSetStatus(aim_success_buzzer, ALARM_ON);
-        //与装甲板中心的距离越近，蜂鸣器越响
-        if(abs(minipc_recv_data->Vision.yaw)>1&&aim_success_buzzer->loudness<0.5)
+        if(minipc_recv_data->Vision.shoot!=0)//代表收到deep(shoot)信息
         {
-            aim_success_buzzer->loudness=0.5*(1/abs(minipc_recv_data->Vision.yaw));
+            DataLebel.aim_flag = 1;
+            DataLebel.fire_flag =1;//1代表可以开火
         }
-        else if(abs(minipc_recv_data->Vision.yaw)<1 && abs(minipc_recv_data->Vision.pitch)<1)
-        {
-            //离装甲板距离较近时，开火
-            aim_success_buzzer->loudness=0.5;
-            if(DataLebel.reverse_flag==1)
-            {
-                DataLebel.fire_flag=0;
-            }
-            else
-            {
-                DataLebel.fire_flag=1;
-            }
-        }
-        //在cnt1<-0.2时，此时不读取深度，但如果之前读取到的深度与实际深度一致，证明小电脑离线，停止自瞄
-        if(minipc_recv_data->Vision.deep-gimbal_cmd_send.last_deep==0&&cnt1<-0.2)
-        {
-            DataLebel.cmd_error_flag=1;
-            DataLebel.fire_flag=0;
-            DataLebel.aim_flag=0;
-            AlarmSetStatus(aim_success_buzzer, ALARM_OFF);
-        }
+    }
+    else if(DataLebel.cmd_error_flag == 1)
+    {
+        minipc_recv_data->Vision.shoot = 0;
+        minipc_recv_data->Vision.pitch=0;
+        minipc_recv_data->Vision.yaw=0;
     }
      //检测不到装甲板，关蜂鸣器，关火
-    else if(minipc_recv_data->Vision.deep==0 && DataLebel.aim_flag==1)       
+    else if(minipc_recv_data->Vision.shoot==0 && DataLebel.aim_flag==1)       
     {
         DataLebel.fire_flag=0;
         DataLebel.aim_flag=0;
-        AlarmSetStatus(aim_success_buzzer, ALARM_OFF);    
+        // AlarmSetStatus(aim_success_buzzer, ALARM_OFF);    
     }
 }
 
@@ -196,8 +172,8 @@ static void GimbalRC()
 
 static void GimbalAC()
 {
-    gimbal_cmd_send.yaw-=0.007f*minipc_recv_data->Vision.yaw;   //往右获得的yaw是减
-    gimbal_cmd_send.pitch -= 0.009f*minipc_recv_data->Vision.pitch;
+    // gimbal_cmd_send.yaw-=0.007f*minipc_recv_data->Vision.yaw;   //往右获得的yaw是减
+    // gimbal_cmd_send.pitch -= 0.009f*minipc_recv_data->Vision.pitch;
 }
 
 
@@ -526,7 +502,6 @@ void RobotCMDTask()
     PubPushMessage(chassis_cmd_pub, (void *)&chassis_cmd_send);
     PubPushMessage(shoot_cmd_pub, (void *)&shoot_cmd_send);
     PubPushMessage(gimbal_cmd_pub, (void *)&gimbal_cmd_send);
-    VisionSetAltitude();
     SendMinipcData(&minipc_send_data);
     SendToUIData();
 

@@ -127,6 +127,9 @@ static void f_PID_ErrorHandle(PIDInstance *pid)
  */
 void PIDInit(PIDInstance *pid, PID_Init_Config_s *config)
 {
+    // config的数据和pid的部分数据是连续且相同的的,所以可以直接用memcpy
+    // @todo: 不建议这样做,可扩展性差,不知道的开发者可能会误以为pid和config是同一个结构体
+    // 后续修改为逐个赋值
     memset(pid, 0, sizeof(PIDInstance));
     // utilize the quality of struct that its memeory is continuous
     memcpy(pid, config, sizeof(PID_Init_Config_s));
@@ -158,10 +161,10 @@ float PIDCalculate(PIDInstance *pid, float measure, float ref)
     if (abs(pid->Err) > pid->DeadBand)
     {
         // 基本的pid计算,使用位置式
-        pid->Pout  = pid->Kp * pid->Err;
+        pid->Pout = pid->Kp * pid->Err;
         pid->ITerm = pid->Ki * pid->Err * pid->dt;
-        pid->Dout  = pid->Kd * (pid->Err - pid->Last_Err) / pid->dt;
-        pid->Fout  = pid->Kf * (pid->Ref-pid->Pre_Ref);
+        pid->Dout = pid->Kd * (pid->Err - pid->Last_Err) / pid->dt;
+
         // 梯形积分
         if (pid->Improve & PID_Trapezoid_Intergral)
             f_Trapezoid_Intergral(pid);
@@ -179,12 +182,12 @@ float PIDCalculate(PIDInstance *pid, float measure, float ref)
             f_Integral_Limit(pid);
 
         pid->Iout += pid->ITerm;                         // 累加积分
-        pid->Output = pid->Pout + pid->Iout + pid->Dout + pid->Fout; // 计算输出
+        pid->Output = pid->Pout + pid->Iout + pid->Dout; // 计算输出
 
         // 输出滤波
         if (pid->Improve & PID_OutputFilter)
             f_Output_Filter(pid);
-
+        pid->Output += pid->FF_Gain*(pid->Measure - pid->Last_Measure);
         // 输出限幅
         f_Output_Limit(pid);
     }
@@ -200,9 +203,6 @@ float PIDCalculate(PIDInstance *pid, float measure, float ref)
     pid->Last_Dout = pid->Dout;
     pid->Last_Err = pid->Err;
     pid->Last_ITerm = pid->ITerm;
-    pid->Pre_Ref = pid->Ref;
+
     return pid->Output;
 }
-
-
-

@@ -17,7 +17,6 @@
 #include "math.h"
 #include "main.h"
 
-
 #ifdef _CMSIS_OS_H
 #define user_malloc pvPortMalloc
 #else
@@ -212,54 +211,4 @@ void MatInit(mat *m, uint8_t row, uint8_t col)
     m->numCols = col;
     m->numRows = row;
     m->pData = (float *)zmalloc(row * col * sizeof(float));
-}
-
-/* General type conversion for MATLAB generated C-code  */
-
-const double MATLAB_B[44] = {
-   -0.00230858256273,-0.009325171223315, -0.01513487448342,-0.008400928532814,
-   0.006833363855991, 0.008519032993693,-0.006865771039861,  -0.0102679770405,
-   0.008664362393225,  0.01337506656253, -0.01154425798558,      -0.017835896,
-    0.01588276158906,   0.0241479874974, -0.02263140090351, -0.03371810569548,
-    0.03420653587077,  0.05059305692987, -0.05847486308356, -0.09208888134333,
-     0.1453154498845,   0.4536214846252,   0.4536214846252,   0.1453154498845,
-   -0.09208888134333, -0.05847486308356,  0.05059305692987,  0.03420653587077,
-   -0.03371810569548, -0.02263140090351,   0.0241479874974,  0.01588276158906,
-        -0.017835896, -0.01154425798558,  0.01337506656253, 0.008664362393225,
-    -0.0102679770405,-0.006865771039861, 0.008519032993693, 0.006833363855991,
-  -0.008400928532814, -0.01513487448342,-0.009325171223315, -0.00230858256273
-};
-// 滤波器结构体
-
-// 初始化滤波器状态
-void initializeFilter(Filter* filter) {
-    for (int i = 0; i < MATLAB_BL; i++) {
-        filter->x[i] = 0.0;
-    }
-    filter->y = 0.0;
-}
-
-// 应用滤波器
-double applyFilter(double input,  Filter* filter) {
-    // 更新输入缓冲区
-    for (int i = MATLAB_BL - 1; i > 0; i--) {
-        filter->x[i] = filter->x[i - 1];
-    }
-    filter->x[0] = input;
-
-    // 计算输出
-    filter->y = 0.0;
-    for (int i = 0; i < MATLAB_BL; i++) {
-        filter->y += MATLAB_B[i] * filter->x[i];
-    }
-
-    return filter->y;
-}
-
-void dot_product(int m, int n, double A[m][n], double B[m][n], double C[m][n]) {
-    for (int i = 0; i < m; i++) {
-        for (int j = 0; j < n; j++) {
-            C[i][j] = A[i][j] * B[i][j];
-        }
-    }
 }

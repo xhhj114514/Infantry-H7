@@ -13,34 +13,6 @@ static USARTInstance *referee_usart_instance; // 裁判系统串口实例
 static DaemonInstance *referee_daemon;		  // 裁判系统守护进程
 static referee_info_t referee_info;			  // 裁判系统数据
 
-// 创建命令映射表
-static const JudgeCommandEntry_t judge_command_table[] = {
-    // 基础命令 - 直接内存拷贝
-    {ID_game_state,           &referee_info.GameState,           LEN_game_state,           NULL,                   "游戏状态"},
-    {ID_game_result,          &referee_info.GameResult,          LEN_game_result,          NULL,                   "比赛结果"},
-    {ID_game_robot_survivors, &referee_info.GameRobotHP,         LEN_game_robot_HP,        NULL,                   "机器人血量"},
-    {ID_event_data,           &referee_info.EventData,           LEN_event_data,           NULL,                   "事件数据"},
-    {ID_referee_warning,      &referee_info.RefereeWarning,      LEN_event_data,           NULL,                   "裁判警告"},
-    {ID_game_robot_state,     &referee_info.GameRobotState,      LEN_game_robot_state,     NULL,                   "机器人状态"},
-    {ID_power_heat_data,      &referee_info.PowerHeatData,       LEN_power_heat_data,      NULL,                   "功率热量"},
-    {ID_game_robot_pos,       &referee_info.GameRobotPos,        LEN_game_robot_pos,       NULL,                   "机器人位置"},
-    {ID_buff_musk,            &referee_info.BuffMusk,            LEN_buff_musk,            NULL,                   "buff状态"},
-    {ID_robot_hurt,           &referee_info.RobotHurt,           LEN_robot_hurt,           NULL,                   "机器人伤害"},
-    {ID_shoot_data,           &referee_info.ShootData,           LEN_shoot_data,           NULL,                   "射击数据"},
-    {ID_projectile_allowance, &referee_info.ProjectileAllowance, LEN_projectile_allowance, NULL,                   "弹丸余量"},
-    {ID_student_interactive,  &referee_info.ArmData,             LEN_receive_data,         NULL, 				"学生交互数据"},
-};
-
-static const uint16_t judge_command_count = sizeof(judge_command_table) / sizeof(JudgeCommandEntry_t);
-
-// 内存拷贝处理函数
-static void MemoryCopyHandler(uint8_t* src_data, void* dest_struct, uint16_t data_len)
-{
-    if (src_data != NULL && dest_struct != NULL&& data_len > 0) {
-        memcpy(dest_struct, src_data, data_len);
-    }
-}
-
 /**
  * @brief  读取裁判数据,中断中读取保证速度
  * @param  buff: 读取到的裁判系统原始数据
@@ -49,43 +21,79 @@ static void MemoryCopyHandler(uint8_t* src_data, void* dest_struct, uint16_t dat
  */
 static void JudgeReadData(uint8_t *buff)
 {
-    if (buff == NULL) {
-        return;
-    }
-    // 写入帧头数据
-    memcpy(&referee_info.FrameHeader, buff, LEN_HEADER);
-    // 判断帧头起始字节
-    if (buff[SOF] != REFEREE_SOF) {
-        return;
-    }
-    // 帧头CRC8校验
-    if (Verify_CRC8_Check_Sum(buff, LEN_HEADER) != TRUE) {
-        return;
-    }
-    // 计算完整帧长度
-    uint16_t judge_length = buff[DATA_LENGTH] + LEN_HEADER + LEN_CMDID + LEN_TAIL;
-    // 帧尾CRC16校验
-    if (Verify_CRC16_Check_Sum(buff, judge_length) != TRUE) {
-        return;
-    }
-    // 提取命令ID
-    referee_info.CmdID = (buff[6] << 8 | buff[5]);
-    // 使用表驱动查找并处理命令
-    for (uint16_t i = 0; i < judge_command_count; i++) {
-        if (judge_command_table[i].cmd_id == referee_info.CmdID) 
+	uint16_t judge_length; // 统计一帧数据长度
+	if (buff == NULL)	   // 空数据包，则不作任何处理
+		return;
+
+	// 写入帧头数据(5-byte),用于判断是否开始存储裁判数据
+	memcpy(&referee_info.FrameHeader, buff, LEN_HEADER);
+
+	// 判断帧头数据(0)是否为0xA5
+	if (buff[SOF] == REFEREE_SOF)
+	{
+		// 帧头CRC8校验
+		if (Verify_CRC8_Check_Sum(buff, LEN_HEADER) == TRUE)
 		{
-			MemoryCopyHandler(buff + DATA_Offset, 
-									judge_command_table[i].data_struct,
-									judge_command_table[i].data_len);
-            break;
-        }
-    }
-    // 处理多帧数据（递归调用）
-    uint8_t* next_frame_ptr = buff + sizeof(xFrameHeader) + LEN_CMDID + 
-                             referee_info.FrameHeader.DataLength + LEN_TAIL;
-    if (*next_frame_ptr == REFEREE_SOF) {
-        JudgeReadData(next_frame_ptr);
-    }
+			// 统计一帧数据长度(byte),用于CR16校验
+			judge_length = buff[DATA_LENGTH] + LEN_HEADER + LEN_CMDID + LEN_TAIL;
+			// 帧尾CRC16校验
+			if (Verify_CRC16_Check_Sum(buff, judge_length) == TRUE)
+			{
+				// 2个8位拼成16位int
+				referee_info.CmdID = (buff[6] << 8 | buff[5]);
+				// 解析数据命令码,将数据拷贝到相应结构体中(注意拷贝数据的长度)
+				// 第8个字节开始才是数据 data=7
+				switch (referee_info.CmdID)
+				{
+				case ID_game_state: // 0x0001
+					memcpy(&referee_info.GameState, (buff + DATA_Offset), LEN_game_state);
+					break;
+				case ID_game_result: // 0x0002
+					memcpy(&referee_info.GameResult, (buff + DATA_Offset), LEN_game_result);
+					break;
+				case ID_game_robot_survivors: // 0x0003
+					memcpy(&referee_info.GameRobotHP, (buff + DATA_Offset), LEN_game_robot_HP);
+					break;
+				case ID_event_data: // 0x0101
+					memcpy(&referee_info.EventData, (buff + DATA_Offset), LEN_event_data);
+					break;
+				case ID_referee_warning://0x0104
+					memcpy(&referee_info.RefereeWarning, (buff + DATA_Offset), LEN_event_data);
+					break;
+				case ID_game_robot_state: // 0x0201
+					memcpy(&referee_info.GameRobotState, (buff + DATA_Offset), LEN_game_robot_state);
+					break;
+				case ID_power_heat_data: // 0x0202
+					memcpy(&referee_info.PowerHeatData, (buff + DATA_Offset), LEN_power_heat_data);
+					break;
+				case ID_game_robot_pos: // 0x0203
+					memcpy(&referee_info.GameRobotPos, (buff + DATA_Offset), LEN_game_robot_pos);
+					break;
+				case ID_buff_musk: // 0x0204
+					memcpy(&referee_info.BuffMusk, (buff + DATA_Offset), LEN_buff_musk);
+					break;
+
+				case ID_robot_hurt: // 0x0206
+					memcpy(&referee_info.RobotHurt, (buff + DATA_Offset), LEN_robot_hurt);
+					break;
+				case ID_shoot_data: // 0x0207
+					memcpy(&referee_info.ShootData, (buff + DATA_Offset), LEN_shoot_data);
+					break;
+				case ID_projectile_allowance: // 0x0208
+					memcpy(&referee_info.ProjectileAllowance, (buff + DATA_Offset), LEN_projectile_allowance);
+					break;
+				case ID_student_interactive: // 0x0301   syhtodo接收代码未测试
+					memcpy(&referee_info.ReceiveData, (buff + DATA_Offset), LEN_receive_data);
+					break;
+				}
+			}
+		}
+		// 首地址加帧长度,指向CRC16下一字节,用来判断是否为0xA5,从而判断一个数据包是否有多帧数据
+		if (*(buff + sizeof(xFrameHeader) + LEN_CMDID + referee_info.FrameHeader.DataLength + LEN_TAIL) == 0xA5)
+		{ // 如果一个数据包出现了多帧数据,则再次调用解析函数,直到所有数据包解析完毕
+			JudgeReadData(buff + sizeof(xFrameHeader) + LEN_CMDID + referee_info.FrameHeader.DataLength + LEN_TAIL);
+		}
+	}
 }
 
 /*裁判系统串口接收回调函数,解析数据 */

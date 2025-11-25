@@ -5,7 +5,6 @@
 #include "message_center.h"
 #include "general_def.h"
 #include "mi_motor.h"
-#include "bmi088.h"
 
 static attitude_t *gimbal_IMU_data; // 云台IMU数据
 static DJIMotorInstance *yaw_motor;
@@ -22,7 +21,7 @@ void GimbalInit()
     // YAW
     Motor_Init_Config_s yaw_config = {
         .can_init_config = {
-            .can_handle = &hcan2,
+            .can_handle = &hfdcan2,
             .tx_id = 1,
         },
         .controller_param_init_config = {
@@ -62,7 +61,7 @@ void GimbalInit()
     // PITCH
     Motor_Init_Config_s pitch_config = {
         .can_init_config = {
-            .can_handle = &hcan2,
+            .can_handle = &hfdcan2,
             .ext_flag = 1,
         },
         .controller_param_init_config={
@@ -96,7 +95,7 @@ static void GimbalStateSet()
     {
     // 停止
     case GIMBAL_ZERO_FORCE:
-        MIMotorInstancestop(pitch_motor);
+        MIMotorInstancetop(pitch_motor);
         DJIMotorStop(yaw_motor);
         motor_init=0;
         break;

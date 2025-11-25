@@ -18,13 +18,8 @@
 #include "cmsis_os.h"
 #include "stm32h723xx.h"
 #include "arm_math.h"
-#define MATLAB_BL  44
-typedef struct {
-    double x[MATLAB_BL];  // 输入缓冲区
-    double y;                // 输出缓冲区
-} Filter;
-void initializeFilter(Filter* filter);
-double applyFilter(double input,  Filter* filter);
+
+
 #ifndef user_malloc
 #ifdef _CMSIS_OS_H
 #define user_malloc pvPortMalloc
@@ -125,7 +120,7 @@ void Cross3d(float *v1, float *v2, float *res);
 float Dot3d(float *v1, float *v2);
 
 float AverageFilter(float new_data, float *buf, uint8_t len);
-void dot_product(int m, int n, double A[m][n], double B[m][n], double C[m][n]);
+
 #define rad_format(Ang) loop_float_constrain((Ang), -PI, PI)
 
 #endif

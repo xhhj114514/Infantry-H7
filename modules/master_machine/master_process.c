@@ -19,6 +19,24 @@ static void VisionOfflineCallback()
 }
 
 
+
+void VisionSetFlag(uint8_t color)
+{
+    minipc_send_data.Vision.detect_color=color;
+}
+
+void VisionSetAltitude(uint8_t color)
+{
+    minipc_send_data.Vision.detect_color = color;
+    minipc_send_data.Vision.pitch = QEKF_INS.Pitch;
+    minipc_send_data.Vision.roll = QEKF_INS.Roll;
+    minipc_send_data.Vision.yaw = QEKF_INS.Yaw;
+    minipc_send_data.Vision.match = minipc_recv_data.TCNTLast;
+    
+}
+
+
+
 #include "bsp_usart.h"
 
 
@@ -66,6 +84,7 @@ void SendMinipcData()
     static uint8_t send_buff[Minipc_Send_sIZE];
     static uint16_t tx_len;
     get_protocol_send_Vision_data(&minipc_send_data, 1, send_buff, &tx_len);
+    VisionSetAltitude(minipc_send_data.Vision.detect_color);
     USARTSend(minipc_usart_instance, send_buff, tx_len, USART_TRANSFER_DMA); 
 }
 

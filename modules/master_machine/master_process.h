@@ -13,13 +13,16 @@ typedef struct
 	struct
     {
 		uint8_t header;  // 帧头，固定为0x5A
-		float joint0_angle;
-		float joint1_angle;
-		float joint2_angle;
-		float joint3_angle;
-		float joint4_angle;
-		float joint5_angle;
-	}MoveIt;
+		float yaw;       // 需要云台转动的相对 yaw 角
+		float pitch;     // 需要云台转动的相对 pitch 角
+		uint8_t shoot;     // 物体距离(shoot)
+		int32_t match;  // 上位机时间
+		uint16_t checksum; // 校验和
+	}Vision;
+	int32_t TCNT;
+	int32_t TCNTLast;
+	int32_t FailCNT;
+	uint8_t FailFlag;
 } __attribute__((packed)) Minipc_Recv_s;
 
 typedef enum
@@ -34,7 +37,13 @@ typedef struct
 	{
 		uint8_t header;  // 帧头，固定为0x5A
 		uint8_t detect_color;
+		float roll;
+		float pitch;
+		float yaw;
+		int32_t match;  // 上位机时间
+		uint16_t checksum; // 校验和
 	}Vision;
+
 } __attribute__((packed)) Minipc_Send_s;
 
 #pragma pack()

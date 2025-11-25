@@ -25,7 +25,7 @@ void ShootInit()
     Motor_Init_Config_s friction_config = {
         .can_init_config = 
         {
-            .can_handle = &hcan2,
+            .can_handle = &hfdcan2,
         },
         .controller_param_init_config = {
             .speed_PID = {
@@ -64,7 +64,7 @@ void ShootInit()
     // 拨盘电机
     Motor_Init_Config_s loader_config = {
         .can_init_config = {
-            .can_handle = &hcan2,
+            .can_handle = &hfdcan2,
         },
         .controller_param_init_config = {
             .speed_PID = {
