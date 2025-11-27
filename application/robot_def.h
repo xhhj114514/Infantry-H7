@@ -1,4 +1,5 @@
 #pragma once // 可以用#pragma once代替#ifndef ROBOT_DEF_H(header guard)
+#include "stm32h723xx.h"
 #ifndef ROBOT_DEF_H
 #define ROBOT_DEF_H
 

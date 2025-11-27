@@ -80,6 +80,10 @@ uint8_t USARTIsReady(USARTInstance *_instance)
         return 1;
 }
 
+
+
+
+#if (__CORTEX_M == 7U)
 /**
  * @brief 每次dma/idle中断发生时，都会调用此函数.对于每个uart实例会调用对应的回调进行进一步的处理
  *        例如:视觉协议解析/遥控器解析/裁判系统解析
@@ -125,7 +129,6 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
     {
         if (huart == usart_instance[i]->usart_handle)
         {
-            // SCB_InvalidateDCache_by_Addr((uint32_t *)usart_instance[i]->recv_buff,usart_instance[i]->recv_buff_size);
             SCB_CleanInvalidateDCache_by_Addr((uint32_t *)usart_instance[i]->recv_buff,usart_instance[i]->recv_buff_size);
             SCB_CleanDCache_by_Addr((uint32_t *)usart_instance[i]->recv_buff,usart_instance[i]->recv_buff_size);
             HAL_UARTEx_ReceiveToIdle_DMA(usart_instance[i]->usart_handle, usart_instance[i]->recv_buff, usart_instance[i]->recv_buff_size);
@@ -134,3 +137,66 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
         }
     }
 }
+
+#endif
+
+
+/** 
+*C板通用，通过宏定义开启CACHE维护
+*/ 
+#if (__CORTEX_M == 4U)
+/**
+ * @brief 每次dma/idle中断发生时，都会调用此函数.对于每个uart实例会调用对应的回调进行进一步的处理
+ *        例如:视觉协议解析/遥控器解析/裁判系统解析
+ *
+ * @note  通过__HAL_DMA_DISABLE_IT(huart->hdmarx,DMA_IT_HT)关闭dma half transfer中断防止两次进入HAL_UARTEx_RxEventCallback()
+ *        这是HAL库的一个设计失误,发生DMA传输完成/半完成以及串口IDLE中断都会触发HAL_UARTEx_RxEventCallback()
+ *        我们只希望处理，因此直接关闭DMA半传输中断第一种和第三种情况
+ *
+ * @param huart 发生中断的串口
+ * @param Size 此次接收到的总数居量,暂时没用
+ */
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+    for (uint8_t i = 0; i < idx; ++i)
+    { // find the instance which is being handled
+    
+        if (huart == usart_instance[i]->usart_handle)
+        { // call the callback function if it is not NULL
+            if (usart_instance[i]->module_callback != NULL)
+            {
+                usart_instance[i]->module_callback();
+                memset(usart_instance[i]->recv_buff, 0, Size); // 接收结束后清空buffer,对于变长数据是必要的
+            }
+            HAL_UARTEx_ReceiveToIdle_DMA(usart_instance[i]->usart_handle, usart_instance[i]->recv_buff, usart_instance[i]->recv_buff_size);
+            __HAL_DMA_DISABLE_IT(usart_instance[i]->usart_handle->hdmarx, DMA_IT_HT);
+            return; // break the loop
+        }
+    }
+}
+
+/**
+ * @brief 当串口发送/接收出现错误时,会调用此函数,此时这个函数要做的就是重新启动接收
+ *
+ * @note  最常见的错误:奇偶校验/溢出/帧错误
+ *
+ * @param huart 发生错误的串口
+ */
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+    for (uint8_t i = 0; i < idx; ++i)
+    {
+        if (huart == usart_instance[i]->usart_handle)
+        {
+            HAL_UARTEx_ReceiveToIdle_DMA(usart_instance[i]->usart_handle, usart_instance[i]->recv_buff, usart_instance[i]->recv_buff_size);
+            __HAL_DMA_DISABLE_IT(usart_instance[i]->usart_handle->hdmarx, DMA_IT_HT);
+            return;
+        }
+    }
+}
+#endif
+
+
+
+
+
