@@ -57,7 +57,7 @@ static float chassis_speed_buff;
 void RobotCMDInit()
 {
     rc_data = RemoteControlInit(&huart5);   // 修改为对应串口
-    // minipc_recv_data = minipcInit(&huart1); // 视觉通信串口
+    minipc_recv_data = minipcInit(&huart10); // 视觉通信串口
     // referee_data= UITaskInit(&huart6,&ui_data);
 
     gimbal_cmd_pub = PubRegister("gimbal_cmd", sizeof(Gimbal_Ctrl_Cmd_s));

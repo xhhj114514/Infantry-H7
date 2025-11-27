@@ -86,9 +86,9 @@ void get_protocol_info_vision(uint8_t *rx_buf,
     {
         // date_length = OFFSET_BYTE + pro.header.data_length;
         //     // 将接收到的数据复制到Minipc_Recv_s结构体中
-        //     recv_data->Vision.header = rx_buf[0];
-        //     memcpy(&recv_data->Vision.yaw, &rx_buf[1], sizeof(float));
-        //     memcpy(&recv_data->Vision.pitch, &rx_buf[5], sizeof(float));
-        //     memcpy(&recv_data->Vision.deep, &rx_buf[9], sizeof(float));
+            recv_data->Vision.header = rx_buf[0];
+            memcpy(&recv_data->Vision.yaw, &rx_buf[1], sizeof(float));
+            memcpy(&recv_data->Vision.pitch, &rx_buf[5], sizeof(float));
+            // memcpy(&recv_data->Vision.deep, &rx_buf[9], sizeof(float));
     }
 }

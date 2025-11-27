@@ -5,7 +5,7 @@
 #include "main.h"
 #include "usart.h"
 
-#define DEVICE_USART_CNT 3     
+#define DEVICE_USART_CNT 10     
 #define USART_RXBUFF_LIMIT 256 
 // 模块回调函数,用于解析协议
 typedef void (*usart_module_callback)();

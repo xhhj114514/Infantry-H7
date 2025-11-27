@@ -1,5 +1,6 @@
 #include "bsp_usart.h"
 #include "stdlib.h"
+#include "stm32h723xx.h"
 #include <string.h>
 
 /* usart service instance, modules' info would be recoreded here using USARTRegister() */
@@ -94,12 +95,15 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     for (uint8_t i = 0; i < idx; ++i)
     { // find the instance which is being handled
+    
         if (huart == usart_instance[i]->usart_handle)
         { // call the callback function if it is not NULL
+            SCB_CleanInvalidateDCache_by_Addr((uint32_t *)usart_instance[i]->recv_buff,usart_instance[i]->recv_buff_size);
             if (usart_instance[i]->module_callback != NULL)
             {
                 usart_instance[i]->module_callback();
                 memset(usart_instance[i]->recv_buff, 0, Size); // 接收结束后清空buffer,对于变长数据是必要的
+                SCB_CleanDCache_by_Addr((uint32_t *)usart_instance[i]->recv_buff,usart_instance[i]->recv_buff_size);
             }
             HAL_UARTEx_ReceiveToIdle_DMA(usart_instance[i]->usart_handle, usart_instance[i]->recv_buff, usart_instance[i]->recv_buff_size);
             __HAL_DMA_DISABLE_IT(usart_instance[i]->usart_handle->hdmarx, DMA_IT_HT);
@@ -121,6 +125,9 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
     {
         if (huart == usart_instance[i]->usart_handle)
         {
+            // SCB_InvalidateDCache_by_Addr((uint32_t *)usart_instance[i]->recv_buff,usart_instance[i]->recv_buff_size);
+            SCB_CleanInvalidateDCache_by_Addr((uint32_t *)usart_instance[i]->recv_buff,usart_instance[i]->recv_buff_size);
+            SCB_CleanDCache_by_Addr((uint32_t *)usart_instance[i]->recv_buff,usart_instance[i]->recv_buff_size);
             HAL_UARTEx_ReceiveToIdle_DMA(usart_instance[i]->usart_handle, usart_instance[i]->recv_buff, usart_instance[i]->recv_buff_size);
             __HAL_DMA_DISABLE_IT(usart_instance[i]->usart_handle->hdmarx, DMA_IT_HT);
             return;
