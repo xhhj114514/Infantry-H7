@@ -4,8 +4,8 @@
 *                         www.segger.com                             *
 **********************************************************************
 
-File          : F:/DT46/WS/H7/Infantry-H7/DBG/DBG.jdebug
-Created       : 20 Nov 2025 02:37
+File          : D:/TM32/DT46/WS/Infantry-H7/DBG/DBG.jdebug
+Created       : 29 Nov 2025 18:24
 Ozone Version : V3.24
 */
 
@@ -22,18 +22,18 @@ void OnProjectLoad (void) {
   //
   // Dialog-generated settings
   //
-  Project.AddPathSubstitute ("F:/DT46/WS/H7/Infantry-H7/DBG", "$(ProjectDir)");
-  Project.AddPathSubstitute ("f:/dt46/ws/h7/infantry-h7/dbg", "$(ProjectDir)");
-  Project.SetDevice ("Cortex-M7");
+  Project.AddPathSubstitute ("D:/TM32/DT46/WS/Infantry-H7/DBG", "$(ProjectDir)");
+  Project.AddPathSubstitute ("d:/tm32/dt46/ws/infantry-h7/dbg", "$(ProjectDir)");
+  Project.SetDevice ("Cortex-M4");
   Project.SetHostIF ("USB", "");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M7F.svd");
-  Project.AddSvdFile ("F:/DT46/WS/H7/Infantry-H7/STM32H723.svd");
+  Project.AddSvdFile ("D:/TM32/GENERAL-FILES/cmsis-svd-stm32/stm32h7/STM32H723.svd");
   //
   // User settings
   //
-  File.Open ("F:/DT46/WS/H7/Infantry-H7/build/Debug/Infantry-H7.elf");
+  File.Open ("D:/TM32/DT46/WS/Infantry-H7/build/Debug/Infantry-H7.elf");
 }
 
 /*********************************************************************
