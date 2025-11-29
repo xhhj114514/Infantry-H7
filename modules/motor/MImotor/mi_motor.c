@@ -128,8 +128,8 @@ void MI_motor_Control(MIMotorInstance* motor, float torque, float MechPosition ,
   * @note           将接收到的CAN线数据解码到电机数据结构体中
   * @retval         none
   */
-// void DecodeMiMotor(CANInstance *_instance)
-// {
+void DecodeMiMotor(CANInstance *_instance)
+{
 //     uint8_t *rxbuff = _instance->rx_buff;
 //     MIMotorInstance *motor = (MIMotorInstance *)_instance->id;
 
@@ -145,7 +145,7 @@ void MI_motor_Control(MIMotorInstance* motor, float torque, float MechPosition ,
 
 //     decode_temp_mi = (rxbuff[6] << 8 | rxbuff[7]);
 //      _instance->RxCAN_info.temperature = (float)decode_temp_mi/10.0f;
-// }
+}
 
 
 /**
