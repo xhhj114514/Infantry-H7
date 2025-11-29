@@ -128,24 +128,24 @@ void MI_motor_Control(MIMotorInstance* motor, float torque, float MechPosition ,
   * @note           将接收到的CAN线数据解码到电机数据结构体中
   * @retval         none
   */
-// void DecodeMiMotor(CANInstance *_instance)
-// {
-//     uint8_t *rxbuff = _instance->rx_buff;
-//     MIMotorInstance *motor = (MIMotorInstance *)_instance->id;
+void DecodeMiMotor(CANInstance *_instance)
+{
+    // uint8_t *rxbuff = _instance->rx_buff;
+    // MIMotorInstance *motor = (MIMotorInstance *)_instance->id;
 
-//     uint16_t decode_temp_mi;//小米电机反馈数据解码缓冲
-//     decode_temp_mi = (rxbuff[0] << 8 | rxbuff[1]);
-//     _instance->RxCAN_info.angle = ((float)decode_temp_mi-32767.5)/32767.5*4*3.1415926f;;
+    // uint16_t decode_temp_mi;//小米电机反馈数据解码缓冲
+    // decode_temp_mi = (rxbuff[0] << 8 | rxbuff[1]);
+    // _instance->RxCAN_info.angle = ((float)decode_temp_mi-32767.5)/32767.5*4*3.1415926f;;
 
-//     decode_temp_mi = (rxbuff[2] << 8 | rxbuff[3]);
-//      _instance->RxCAN_info.speed = ((float)decode_temp_mi-32767.5)/32767.5*30.0f;
+    // decode_temp_mi = (rxbuff[2] << 8 | rxbuff[3]);
+    //  _instance->RxCAN_info.speed = ((float)decode_temp_mi-32767.5)/32767.5*30.0f;
 
-//     decode_temp_mi = (rxbuff[4] << 8 | rxbuff[5]);
-//      _instance->RxCAN_info.torque = ((float)decode_temp_mi-32767.5)/32767.5*12.0f;
+    // decode_temp_mi = (rxbuff[4] << 8 | rxbuff[5]);
+    //  _instance->RxCAN_info.torque = ((float)decode_temp_mi-32767.5)/32767.5*12.0f;
 
-//     decode_temp_mi = (rxbuff[6] << 8 | rxbuff[7]);
-//      _instance->RxCAN_info.temperature = (float)decode_temp_mi/10.0f;
-// }
+    // decode_temp_mi = (rxbuff[6] << 8 | rxbuff[7]);
+    //  _instance->RxCAN_info.temperature = (float)decode_temp_mi/10.0f;
+}
 
 
 /**
