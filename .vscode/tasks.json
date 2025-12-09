@@ -39,7 +39,7 @@
         {
             "label":"Remove CMake Cache",
             "type":"shell",
-            "command": "Remove-Item -Recurse -Force ${workspaceFolder}/build",
+            "command": "Remove-Item -Recurse -Force ${workspaceFolder}/build"
         },
 		{
 			"label": "Flash with OpenOCD",
@@ -48,6 +48,9 @@
 			"args": [
 				"-f",
                 "${workspaceFolder}/openocd.cfg",
+                // "interface/cmsis-dap.cfg",
+                // "-f",
+                // "target/stm32h7x.cfg",
                 "-c",
                 "program ./build/Debug/${workspaceFolderBasename}.elf verify reset exit"
 			],
@@ -55,19 +58,14 @@
 			"problemMatcher": [],
 		},
         {
-            "label": "Flash AND Start Debug",
+            "label": "Flash && Ozone ON LINUX",
             "type": "shell",
-            "command": "Ozone",
+            "command": "openocd",
             "args": [
-                "${workspaceFolder}\\DBG\\DBG.jdebug",
-                // "-script",
-                // "${workspaceFolder}\\Load_Plugin.js"
+                "-f",
+                "${workspaceFolder}/openocd.cfg",
             ],
-            // "dependsOn": "Flash with OpenOCD",
-            // "group": {
-            //     "kind": "build",
-            //     "isDefault": false
-            // },
+            "dependsOn": "Flash with OpenOCD",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"
