@@ -12,7 +12,7 @@
 #include "chassis.h"
 
 
-// #include "gimbal.h"
+#include "gimbal.h"
 // #include "shoot.h"
 #include "robot_cmd.h"
 
@@ -25,7 +25,7 @@ void RobotInit()
     
     BSPInit();
     RobotCMDInit();
-    GimbalInit();
+    // GimbalInit();
 //     ShootInit();
 
 
@@ -40,7 +40,7 @@ void RobotInit()
 void RobotTask()
 {
     RobotCMDTask();
-    GimbalTask();
+    // GimbalTask();
 //    ShootTask();
 //    ChassisTask();
 }

@@ -13,10 +13,11 @@
                 "STM32H723xx",
                 "ARM_MATH_CM7"
             ],
-            "compilerPath": "D:\\MinGW\\bin\\gcc.exe",
+            // "compilerPath": "D:\\MinGW\\bin\\gcc.exe",
+            "compilerPath": "D:\\DEV\\LLVM\\bin\\clang.exe",
             "cStandard": "c17",
             "cppStandard": "gnu++14",
-            "intelliSenseMode": "windows-gcc-x86",
+            // "intelliSenseMode": "windows-gcc-x86",
             "configurationProvider": "ms-vscode.makefile-tools"
         }
     ],
