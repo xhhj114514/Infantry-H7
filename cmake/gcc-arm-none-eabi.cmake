@@ -41,6 +41,35 @@ set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} --specs=nano.specs")
 set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -Wl,-Map=${CMAKE_PROJECT_NAME}.map -Wl,--gc-sections")
 set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -Wl,--start-group -lc -lm -Wl,--end-group")
 set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -Wl,--print-memory-usage")
-# set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -Wl,--no-warn-rwx-segments")
+
 
 set(CMAKE_CXX_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -Wl,--start-group -lstdc++ -lsupc++ -Wl,--end-group")
+
+# =============================================================================
+# 为 clangd / IntelliSense 优化：导出 compile_commands.json + 强制关键宏和选项
+# =============================================================================
+
+
+# set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -Wl,--no-warn-rwx-segments")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
+add_compile_definitions(
+    __FPU_PRESENT=1        
+    ARM_MATH_CM7            #For arm_math.h
+)
+# make sure DSP Files Could Be Searched By Clangd
+add_compile_options(
+    -mcpu=cortex-m7
+    -mfpu=fpv5-d16
+    -mfloat-abi=hard
+)
+
+add_link_options(
+    -mcpu=cortex-m7
+    -mfpu=fpv5-d16
+    -mfloat-abi=hard
+)
+
+
+
