@@ -1,3 +1,11 @@
+#ifndef LQR_H
+#define LQR_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /* LQR结构体 */
 typedef struct
 {
@@ -46,3 +54,10 @@ typedef struct
 
 float LQRCalculate(LQRInstance *lqr, float ref_angle, float measure_angle, float measure_velocity);
 void LQRInit(LQRInstance *lqr, LQR_Init_Config_s *config);
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

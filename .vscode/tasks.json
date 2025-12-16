@@ -26,15 +26,21 @@
             },
             "problemMatcher":[]
         },
+        // {
+        //     "label": "Configure & Restart clangd",
+        //     "type": "shell",
+        //     "command": "cmd.exe",                 // 关键第1行：强制用 cmd.exe
+        //     "args": [
+        //         "/C",                             // 关键第2行：cmd 的参数
+        //         "code --command cmake.configure && code --command clangd.restartLanguageServer"
+        //     ],
+        // },
         {
             "label": "Configure All Projects",//Must Be Done after "Remove CMake Cache"
             "type": "cmake",
             "command": "configure",
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            }
+            // "dependsOrder": "sequence",          // 新增第1行：按顺序执行依赖任务
+            // "dependsOn": "Configure & Restart clangd",  // 新增第2行：配置完成后运行这个任务
         },
         {
             "label":"Remove CMake Cache",

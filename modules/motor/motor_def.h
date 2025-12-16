@@ -1,10 +1,10 @@
 #ifndef MOTOR_DEF_H
 #define MOTOR_DEF_H
 
-#include "bsp_can.h"
 #include "controller.h"
+#include "bsp_can.h"
 #include "stdint.h"
-#include "lqr.h"
+
 #define LIMIT_MIN_MAX(x, min, max) (x) = (((x) <= (min)) ? (min) : (((x) >= (max)) ? (max) : (x)))
 
 /**
@@ -58,12 +58,6 @@ typedef enum
     MOTOR_ENALBED = 1,
 } Motor_Working_Type_e;
 
-typedef enum
-{
-    PID_MODE=0,
-    LQR_MODE=1
-} Control_Algorithms_e;
-
 /* 电机控制设置,包括闭环类型,反转标志和反馈来源 */
 typedef struct
 {
@@ -74,12 +68,11 @@ typedef struct
     Feedback_Source_e angle_feedback_source;       // 角度反馈类型
     Feedback_Source_e speed_feedback_source;       // 速度反馈类型
     Feedfoward_Type_e feedforward_flag;            // 前馈标志
-    Control_Algorithms_e control_algorithm;
 
 } Motor_Control_Setting_s;
 
 /* 电机控制器,包括其他来源的反馈数据指针,3环控制器和电机的参考输入*/
-
+// 后续增加前馈数据指针
 typedef struct
 {
     float *other_angle_feedback_ptr; // 其他反馈来源的反馈数据指针
@@ -90,9 +83,8 @@ typedef struct
     PIDInstance current_PID;
     PIDInstance speed_PID;
     PIDInstance angle_PID;
+
     float pid_ref; // 将会作为每个环的输入和输出顺次通过串级闭环
-    float lqr_ref;
-    LQRInstance lqr;
 } Motor_Controller_s;
 
 /* 电机类型枚举 */
@@ -103,7 +95,6 @@ typedef enum
     M3508,
     M2006,
     LK9025,
-    HT04,
     DM8009,
     DM4310,
 } Motor_Type_e;
@@ -124,10 +115,6 @@ typedef struct
     PID_Init_Config_s current_PID;
     PID_Init_Config_s speed_PID;
     PID_Init_Config_s angle_PID;
-
-    LQR_Init_Config_s lqr;
-    Control_Algorithms_e control_algorithm;
-
 } Motor_Controller_Init_s;
 
 /* 用于初始化CAN电机的结构体,各类电机通用 */
@@ -136,8 +123,8 @@ typedef struct
     Motor_Controller_Init_s controller_param_init_config;
     Motor_Control_Setting_s controller_setting_init_config;
     Motor_Type_e motor_type;
-    CAN_Init_Config_s can_init_config;
     uint8_t mit_flag;
+    CAN_Init_Config_s can_init_config;
 } Motor_Init_Config_s;
 
 #endif // !MOTOR_DEF_H

@@ -1,11 +1,10 @@
-#include "dmmotor.h"
+#include "DM_motor.h"
 #include "memory.h"
 #include "general_def.h"
-#include "user_lib.h"
 #include "cmsis_os.h"
-#include "string.h"
+
 #include "daemon.h"
-#include "stdlib.h"
+
 #include "bsp_dwt.h"
 static uint8_t idx;
 static DMMotorInstance *dm_motor_instance[DM_MOTOR_CNT];
@@ -85,7 +84,7 @@ static void DMMotorDecode(CANInstance *motor_can)
         measure->real_total_round = (int32_t)(temp_angle / 360.0f);
         measure->real_angle_single_round = temp_angle - measure->real_total_round * 360.0f;
     }
-    else if (motor->motor_type ==DM4310)
+    else if (motor->motor_type == DM4310)
     {
         measure->real_total_angle =  measure->total_angle*3;
         float temp_angle = measure->angle_single_round * 3;

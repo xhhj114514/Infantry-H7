@@ -1,10 +1,12 @@
-#ifndef DMMOTOR_H
-#define DMMOTOR_H
+#ifndef DM_motor_H
+#define DM_motor_H
 #include <stdint.h>
 #include "bsp_can.h"
 #include "controller.h"
 #include "motor_def.h"
 #include "daemon.h"
+#include "stdlib.h"
+#include "string.h"
 
 #define DM_MOTOR_CNT 4
 
