@@ -19,6 +19,14 @@
 #include "user_lib.h"
 #include "general_def.h"
 
+#include "robot_def.h"
+#include  "message_center.h"
+
+
+static Publisher_t *chassis_imu_pub;   // 底盘控制消息发布者
+static Chassis_IMU_Data_p chassis_imu_data;//INS->GYRO deg/s -------- needed rad/s
+
+
 static INS_t INS;
 static IMU_Param_t IMU_Param ;
 static PIDInstance TempCtrl = {0};
@@ -113,7 +121,9 @@ INS_t *INS_Init(void)
     INS.AccelLPF = 0.0085;
     INS.DGyroLPF = 0.009;
     DWT_GetDeltaT(&INS_DWT_Count);
+    chassis_imu_pub = PubRegister("chassis_imu", sizeof(Chassis_IMU_Data_p));
     return &INS; 
+
 }
 static float bmi088_tim;
 /* 注意以1kHz的频率运行此任务 */
@@ -171,7 +181,15 @@ void INS_Task(void)
         INS.Pitch = QEKF_INS.Pitch;
         INS.Roll = QEKF_INS.Roll;
         INS.YawTotalAngle = QEKF_INS.YawTotalAngle;
-
+        
+        chassis_imu_data.yaw = QEKF_INS.Yaw;
+        chassis_imu_data.pit = QEKF_INS.Pitch;
+        chassis_imu_data.roll = QEKF_INS.Roll;
+        chassis_imu_data.yawtoltal = QEKF_INS.YawTotalAngle;
+        chassis_imu_data.wx = INS.Gyro[X] * DEGREE_2_RAD;
+        chassis_imu_data.wy = INS.Gyro[Y] * DEGREE_2_RAD;
+        chassis_imu_data.wz = INS.Gyro[Z] * DEGREE_2_RAD;
+        PubPushMessage(chassis_imu_pub, (void *)&chassis_imu_data);
     }
 
     // temperature control

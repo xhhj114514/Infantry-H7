@@ -7,27 +7,62 @@
 #include "motor_def.h"
 #include "daemon.h"
 #include "memory.h"
-#define LK_MOTOR_MX_CNT 4 // 最多允许4个LK电机使用多电机指令,挂载在一条总线上
 
-#define I_MIN -2000
-#define I_MAX 2000
-#define CURRENT_SMOOTH_COEF 0.9f
-#define SPEED_SMOOTH_COEF 0.85f
-#define REDUCTION_RATIO_DRIVEN 1
-#define ECD_ANGLE_COEF_LK (360.0f / 65536.0f)
-#define CURRENT_TORQUE_COEF_LK 0.00512f  // 电流设定值转换成扭矩的系数，这里对应的是16T
+#define LK_MOTOR_MX_CNT 8 // 1-32
 
-typedef struct // 9025
+
+#define LK_CAN_TXID_BASE 0x140
+#define LK_CAN_RXID_BASE 0x180
+#define CURRENT_SMOOTH_LPF 0.1f  //2804 0.01?
+#define SPEED_SMOOTH_LPF 0.7f
+#define REDUCTION_RATIO 1
+
+#define LK_ECD2ANGLE (360.0f / 65536.0f) //18Bit?
+#define LK_RAW2SPD      (1.0f)              //1dps/LSB
+#define LK_MF_RAW2CUR   (33.0f / 4096.0f) 
+#define LK_MG_RAW2CUR   (66.0f / 4096.0f) 
+#define LK_TEMP_RAW2DEG (1.0f)          //  1Degree/LSB
+#define LK_CURRENT_TORQUE_16T 0.32f  // 16T
+#define LK_CURRENT_TORQUE_35T 0.81f  // 35T
+
+
+enum LK_Motor_CMD {
+    LK_READ_STATE_1 = 0x9A,
+    LK_CLEAR_ERROR  = 0x9B,
+    LK_READ_STATE_2 = 0X9C,
+    LK_READ_STATE_3 = 0X9D,//NOT MS
+    LK_MOTOR_START        = 0X88,
+    LK_MOTOR_CLEARSTOP         = 0x80,
+    LK_MOTOR_STOP   =0x81,
+    LK_MOTOR_CLOSE_Torque  = 0xA1,
+    LK_MOTOR_CLOSE_Speed   = 0xA2,
+    LK_MOTOR_CLOSE_ACCRotate = 0xA3,
+    LK_MOTOR_CLOSE_SpeedACCRotate = 0xA4,
+};
+
+typedef enum  {
+    NORMAL = 0x00,
+    LOWVOLTAGEPROTECT ,
+    HIGHVOLTAGEPROTECT,
+    DRIVEROVERTREMPPROTECT,
+    MOTOROVERTEMP,
+    MOTOROVERCURRENT,
+    MOTORSHORTED,
+    MOTORSTALL,
+    MOTORSIGNALLOST,
+}LK_Motor_Error;
+//9025 V2
+typedef struct 
 {
     uint16_t last_ecd;        // 上一次读取的编码器值
     uint16_t ecd;             // 当前编码器值
-    float angle_single_round; // 单圈角度
+    float angle_single; // 单圈角度 DEG
     float speed_rads;         // speed rad/s
-    int16_t real_current;     // 实际电流
+    float real_current;     // 实际电流
     uint8_t temperature;      // 温度,C°
 
-    float total_angle;   // 总角度
-    int32_t total_round; // 总圈数
+    float ACCangle;   // 总角度
+    int32_t ACCrotation; // 总圈数
 
     float feed_dt;
     uint32_t feed_dwt_cnt;
@@ -41,14 +76,14 @@ typedef struct
 
     float *other_angle_feedback_ptr; // 其他反馈来源的反馈数据指针
     float *other_speed_feedback_ptr;
-    float *speed_feedforward_ptr;   // 速度前馈数据指针,可以通过此指针设置速度前馈值,或LQR等时作为速度状态变量的输入
-    float *current_feedforward_ptr; // 电流前馈指针
+    float *other_current_feedback_ptr;
     PIDInstance current_PID;
     PIDInstance speed_PID;
     PIDInstance angle_PID;
     float pid_ref;
 
     Motor_Working_Type_e stop_flag; // 启停标志
+    LK_Motor_Error STATE; 
 
     CANInstance *motor_can_ins;
 

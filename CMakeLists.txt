@@ -96,14 +96,11 @@ USER_ADD_DIR(${CMAKE_SOURCE_DIR}/modules/matrix)
 # USER_ADD_DIR(${CMAKE_SOURCE_DIR}/modules/Trajectory_planning)
 USER_ADD_DIR(${CMAKE_SOURCE_DIR}/application)
 USER_ADD_DIR(${CMAKE_SOURCE_DIR}/application/cmd)
+USER_ADD_DIR(${CMAKE_SOURCE_DIR}/application/VVMMCC)
 # USER_ADD_DIR(${CMAKE_SOURCE_DIR}/application/chassis)
 # USER_ADD_DIR(${CMAKE_SOURCE_DIR}/application/chassisalgo)
 # USER_ADD_DIR(${CMAKE_SOURCE_DIR}/application/gimbal)
 # USER_ADD_DIR(${CMAKE_SOURCE_DIR}/application/shoot)
-
-
-
-
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD

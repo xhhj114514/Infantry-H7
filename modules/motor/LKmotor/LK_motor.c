@@ -1,4 +1,5 @@
 #include "LK_motor.h"
+#include "motor_def.h"
 #include "stdlib.h"
 #include "general_def.h"
 #include "daemon.h"
@@ -6,43 +7,68 @@
 
 static uint8_t idx;
 static LKMotorInstance *lkmotor_instance[LK_MOTOR_MX_CNT] = {NULL};
-static CANInstance *sender_instance; // 多电机发送时使用的caninstance(当前保存的是注册的第一个电机的caninstance)
 
 /**
  * @brief 电机反馈报文解析
  *
  * @param _instance 发生中断的caninstance
+ * @note  State1 && State2  有需要其他需要自行增加
  */
-static void LKMotorDecode(CANInstance *_instance)
+static void LKDecode(CANInstance *_instance)
 {
-    LKMotorInstance *motor = (LKMotorInstance *)_instance->id; // 通过caninstance保存的father id获取对应的motorinstance
-    LKMotor_Measure_t *measure = &motor->measure;
+    static LKMotorInstance *motor;
+    static LKMotor_Measure_t *measure;
+    //Find Motor
+    motor = (LKMotorInstance *)_instance->id; //CAN(Father)Ptr to Motor(Children),,todo?：优化结构体识别，省去自行记忆背诵解析
+    measure = &motor->measure;
     uint8_t *rx_buff = _instance->rx_buff;
 
     DaemonReload(motor->daemon); // 喂狗
     measure->feed_dt = DWT_GetDeltaT(&measure->feed_dwt_cnt);
 
+    //Update Last Mea
     measure->last_ecd = measure->ecd;
-    measure->ecd = (uint16_t)((rx_buff[7] << 8) | rx_buff[6]);
+    switch(rx_buff[0])
+    {
+        case LK_READ_STATE_1:
+        {
+            if(rx_buff[7] & 0x80)motor->STATE = MOTORSIGNALLOST;
+            else if(rx_buff[7] & 0x40)motor->STATE = MOTORSTALL;
+            else if(rx_buff[7] & 0x20)motor->STATE = MOTORSHORTED;
+            else if(rx_buff[7] & 0x10)motor->STATE = MOTOROVERCURRENT;
+            else if(rx_buff[7] & 0x08)motor->STATE = MOTOROVERTEMP;
+            else if(rx_buff[7] & 0x04)motor->STATE = DRIVEROVERTREMPPROTECT;
+            else if(rx_buff[7] & 0x02)motor->STATE = HIGHVOLTAGEPROTECT;
+            else if(rx_buff[7] & 0x01)motor->STATE = LOWVOLTAGEPROTECT;
+            else motor->STATE = NORMAL;
+        }
+        break;
+        case LK_READ_STATE_2:
+        {
+            motor->measure.temperature = rx_buff[1];
 
-    measure->angle_single_round = ECD_ANGLE_COEF_LK * measure->ecd;
+            motor->measure.real_current = (1 - CURRENT_SMOOTH_LPF) * measure->real_current +
+                            CURRENT_SMOOTH_LPF * (float)((int16_t)(rx_buff[3]<<8 | rx_buff[2]))*LK_MF_RAW2CUR;
 
-    measure->speed_rads = (1 - SPEED_SMOOTH_COEF) * measure->speed_rads +
-                          DEGREE_2_RAD * SPEED_SMOOTH_COEF * (float)((int16_t)(rx_buff[5] << 8 | rx_buff[4]));
+            motor->measure.speed_rads = (1 - SPEED_SMOOTH_LPF) * measure->speed_rads +
+                          DEGREE_2_RAD * SPEED_SMOOTH_LPF * (float)((int16_t)(rx_buff[5]<<8 | rx_buff[4]))*LK_RAW2SPD;
 
-    measure->real_current = (1 - CURRENT_SMOOTH_COEF) * measure->real_current +
-                            CURRENT_SMOOTH_COEF * (float)((int16_t)(rx_buff[3] << 8 | rx_buff[2]));
-
-    measure->temperature = rx_buff[1];
-
-    if (measure->ecd - measure->last_ecd > 32768)
-        measure->total_round--;
-    else if (measure->ecd - measure->last_ecd < -32768)
-        measure->total_round++;
-    measure->total_angle = measure->total_round * 360 + measure->angle_single_round;
+            motor->measure.angle_single = (float)((int16_t)(rx_buff[7]<<8 | rx_buff[6]))*LK_ECD2ANGLE;
+            if (measure->ecd - measure->last_ecd > 32768)
+                measure->ACCrotation--;
+            else if (measure->ecd - measure->last_ecd < -32768)
+                measure->ACCrotation++;
+            measure->ACCangle = measure->ACCrotation * 360 + measure->angle_single;
+        }
+        break;
+        default:
+        { 
+        }
+        break;
+    }
 }
 
-static void LKMotorLostCallback(void *motor_ptr)
+static void LKLostCallback(void *motor_ptr)
 {
     LKMotorInstance *motor = (LKMotorInstance *)motor_ptr;
 }
@@ -61,99 +87,52 @@ LKMotorInstance *LKMotorInit(Motor_Init_Config_s *config)
     motor->other_speed_feedback_ptr = config->controller_param_init_config.other_speed_feedback_ptr;
 
     config->can_init_config.id = motor;
-    config->can_init_config.can_module_callback = LKMotorDecode;
-    config->can_init_config.rx_id = 0x140 + config->can_init_config.tx_id;
-    config->can_init_config.tx_id = config->can_init_config.tx_id + 0x280 - 1; // 这样在发送写入buffer的时候更方便,因为下标从0开始,LK多电机发送id为0x280
+    config->can_init_config.can_module_callback = LKDecode;
+    config->can_init_config.rx_id = LK_CAN_RXID_BASE + config->can_init_config.tx_id;
+    config->can_init_config.tx_id = config->can_init_config.tx_id- 1 + LK_CAN_TXID_BASE ; 
     motor->motor_can_ins = CANRegister(&config->can_init_config);
-
-    if (idx == 0) // 用第一个电机的can instance发送数据
-    {
-        sender_instance = motor->motor_can_ins;
-        sender_instance->tx_id = 0x280;
-    }
 
     LKMotorEnable(motor);
     DWT_GetDeltaT(&motor->measure.feed_dwt_cnt);
     lkmotor_instance[idx++] = motor;
 
     Daemon_Init_Config_s daemon_config = {
-        .callback = LKMotorLostCallback,
+        .callback = LKLostCallback,
         .owner_id = motor,
-        .reload_count = 50, // 50ms
+        .reload_count = 50, //ms
     };
     motor->daemon = DaemonRegister(&daemon_config);
 
     return motor;
 }
 
-/* 第一个电机的can instance用于发送数据,向其tx_buff填充数据 */
+void CheckMotor(LKMotorInstance *motor)
+{   static uint8_t AA=0;
+    if(AA<=1000)
+    {
+        motor->motor_can_ins->tx_buff[0] = LK_READ_STATE_2;
+        if(AA % 1000 == 0)
+        {
+            motor->motor_can_ins->tx_buff[1] = LK_READ_STATE_1;
+        }
+    }
+}
+
 void LKMotorControl()
 {
-    float pid_measure, pid_ref;
-    int16_t set;
-    LKMotorInstance *motor;
-    LKMotor_Measure_t *measure;
-    Motor_Control_Setting_s *setting;
-
-    // 设置tx_buff[0]为0xa1
-    sender_instance->tx_buff[0] = 0xA1;
-    sender_instance->tx_buff[1] = 0xAA;
-    sender_instance->tx_buff[2] = 0xAA;
-    sender_instance->tx_buff[3] = 0xAA;
-    sender_instance->tx_buff[4] = 0xAA;
-    sender_instance->tx_buff[5] = 0xAA;
-    sender_instance->tx_buff[6] = 0xAA;
-    sender_instance->tx_buff[7] = 0xAA;
-
-    // for (size_t i = 0; i < idx; ++i)
-    // {
-    //     motor = lkmotor_instance[i];
-    //     measure = &motor->measure;
-    //     setting = &motor->motor_settings;
-    //     pid_ref = motor->pid_ref;
-    //     if (setting->motor_reverse_flag == MOTOR_DIRECTION_REVERSE)
-    //         pid_ref *= -1;
-
-    //     if ((setting->close_loop_type & ANGLE_LOOP) && setting->outer_loop_type == ANGLE_LOOP)
-    //     {
-    //         if (setting->angle_feedback_source == OTHER_FEED)
-    //             pid_measure = *motor->other_angle_feedback_ptr;
-    //         else
-    //             pid_measure = measure->real_current;
-    //         pid_ref = PIDCalculate(&motor->angle_PID, pid_measure, pid_ref);
-    //         if (setting->feedforward_flag & SPEED_FEEDFORWARD)
-    //             pid_ref += *motor->speed_feedforward_ptr;
-    //     }
-
-    //     if ((setting->close_loop_type & SPEED_LOOP) && setting->outer_loop_type & (ANGLE_LOOP | SPEED_LOOP))
-    //     {
-    //         if (setting->angle_feedback_source == OTHER_FEED)
-    //             pid_measure = *motor->other_speed_feedback_ptr;
-    //         else
-    //             pid_measure = measure->speed_rads;
-    //         pid_ref = PIDCalculate(&motor->angle_PID, pid_measure, pid_ref);
-    //         if (setting->feedforward_flag & CURRENT_FEEDFORWARD)
-    //             pid_ref += *motor->current_feedforward_ptr;
-    //     }
-
-    //     if (setting->close_loop_type & CURRENT_LOOP)
-    //     {
-    //         pid_ref = PIDCalculate(&motor->current_PID, measure->real_current, pid_ref);
-    //     }
-
-    //     set = (int16_t)pid_ref;
-
-    //     // 这里随便写的,为了兼容多电机命令.后续应该将tx_id以更好的方式表达电机id,单独使用一个CANInstance,而不是用第一个电机的CANInstance
-    //     memcpy(sender_instance->tx_buff , &set, sizeof(uint16_t));
-
-    //     if (motor->stop_flag == MOTOR_STOP)
-    //     { // 若该电机处于停止状态,直接将发送buff置零
-    //         memset(sender_instance->tx_buff , 0, sizeof(uint16_t));
-    //     }
-    // }
-
-    if (idx) // 如果有电机注册了
-        CANTransmit(sender_instance, 0.2);
+    static uint8_t II=0;
+    for(II=0; II<LK_MOTOR_MX_CNT; II++)
+    {
+        CheckMotor(lkmotor_instance[II]);
+        if(lkmotor_instance[II]->stop_flag == MOTOR_ENALBED) 
+        {
+            CANTransmit(lkmotor_instance[II]->motor_can_ins, 0.2);
+        }
+        else if (lkmotor_instance[II]->stop_flag == MOTOR_STOP)
+        { 
+            memset(lkmotor_instance[II]->motor_can_ins->tx_buff , 0, sizeof(uint8_t));
+        }
+    }
 }
 
 void LKMotorStop(LKMotorInstance *motor)

@@ -10,32 +10,15 @@
 /* 开发板类型定义,烧录时注意不要弄错对应功能;修改定义后需要重新编译,只能存在一个定义! */
 #define ONE_BOARD // 单板控制整车
 
-#define VISION_USE_UART // 使用串口发送视觉数据
-
-/* 机器人重要参数定义,注意根据不同机器人进行修改,浮点数需要以.0或f结尾,无符号以u结尾 */
-// 云台参数
-#define YAW_CHASSIS_ALIGN_ECD 4140  // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
-#define YAW_ECD_GREATER_THAN_4096 1 // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
-#define PITCH_HORIZON_ECD 3412      // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
-#define PITCH_MAX_ANGLE 1.5//0.82          // 云台竖直方向最大角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
-#define PITCH_MIN_ANGLE -0.82           // 云台竖直方向最小角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
-// 发射参数
-#define ONE_BULLET_DELTA_ANGLE 36    // 发射一发弹丸拨盘转动的距离,由机械设计图纸给出
-#define REDUCTION_RATIO_LOADER 49.0f // 拨盘电机的减速比,英雄需要修改为3508的19.0f
-#define NUM_PER_CIRCLE 10            // 拨盘一圈的装载量
-
-
-// 机器人底盘修改的参数,单位为mm(毫米)
-#define WHEEL_BASE 350              // 纵向轴距(前进后退方向)
-#define TRACK_WIDTH 300             // 横向轮距(左右平移方向)
-#define CENTER_GIMBAL_OFFSET_X 0    // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
-#define CENTER_GIMBAL_OFFSET_Y 0    // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
 #define RADIUS_WHEEL 60             // 轮子半径
-#define REDUCTION_RATIO_WHEEL 19.0f // 电机减速比,因为编码器量测的是转子的速度而不是输出轴的速度故需进行转换
-/* 根据robot_def.h中的macro自动计算的参数 */
-#define HALF_WHEEL_BASE (WHEEL_BASE / 2.0f)     // 半轴距
-#define HALF_TRACK_WIDTH (TRACK_WIDTH / 2.0f)   // 半轮距
-#define PERIMETER_WHEEL (RADIUS_WHEEL * 2 * PI) // 轮子周长
+#define CHASSIS_MAX_ANG 30
+#define CHASSIS_MIN_ANG -30
+#define LEG_L1 0.05f
+#define LEG_L2 0.05f
+#define LEG_L3 0.05f
+#define LEG_L4 0.05f
+#define LEG_L5 0.0f
+
 
 
 
@@ -133,13 +116,45 @@ typedef struct
  *
  */
 // cmd发布的底盘控制数据,由chassis订阅
+
+typedef struct
+{
+    float x;
+    float x_hat;
+    float theta;
+    float w;
+    float alpha;
+    float d_alpha;
+}Chassis_Data_Algo_t;
+
+typedef struct
+{
+    float pit;
+    float wx;
+    float roll;
+    float wy;
+    float yaw;
+    float wz;
+    float yawtoltal;
+} Chassis_IMU_Data_s;
+
+typedef struct
+{
+    float pit;
+    float wx;
+    float roll;
+    float wy;
+    float yaw;
+    float wz;
+    float yawtoltal;
+} Chassis_IMU_Data_p;
+
 typedef struct
 {
     // 控制部分
     float vx;           // 前进方向速度
     float vy;           // 横移方向速度
     float wz;           // 旋转速度
-    float offset_angle; // 底盘和归中位置的夹角
     chassis_mode_e chassis_mode;
     float chassis_rotate_buff;
     float chassis_speed_buff;
