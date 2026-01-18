@@ -64,7 +64,6 @@ void LEGInit_L() {
       },
       .controller_param_init_config =
           {
-
           },
       .controller_setting_init_config = {},
       .motor_type = LK9025,
@@ -106,10 +105,10 @@ void LEGInit_L() {
       .motor_type = 8009,
   };
 
-  hiplf = DMMotorInit(&DMMotorInitConfig);
+//   hiplf = DMMotorInit(&DMMotorInitConfig);
 
-  DMMotorInitConfig.can_init_config.tx_id = 3;
-  hiplb = DMMotorInit(&DMMotorInitConfig);
+//   DMMotorInitConfig.can_init_config.tx_id = 3;
+//   hiplb = DMMotorInit(&DMMotorInitConfig);
 }
 
 
@@ -168,7 +167,7 @@ void LEGInit_R() {
       .controller_setting_init_config = {},
       .motor_type = LK9025,
   };
-  foot_motor_r = LKMotorInit(&LKMotorInitConfig);
+//   foot_motor_r = LKMotorInit(&LKMotorInitConfig);
 
   Motor_Init_Config_s DMMotorInitConfig = {
       .can_init_config =
@@ -205,10 +204,10 @@ void LEGInit_R() {
       .motor_type = 8009,
   };
 
-  hiprf = DMMotorInit(&DMMotorInitConfig);
+//   hiprf = DMMotorInit(&DMMotorInitConfig);
 
-  DMMotorInitConfig.can_init_config.tx_id = 6;
-  hiprb = DMMotorInit(&DMMotorInitConfig);
+//   DMMotorInitConfig.can_init_config.tx_id = 6;
+//   hiprb = DMMotorInit(&DMMotorInitConfig);
 }
 
 static void Failsafe()
