@@ -25,7 +25,7 @@ static void LKDecode(CANInstance *_instance)
 
     DaemonReload(motor->daemon); // 喂狗
     measure->feed_dt = DWT_GetDeltaT(&measure->feed_dwt_cnt);
-
+     
     //Update Last Mea
     measure->last_ecd = measure->ecd;
     switch(rx_buff[0])
